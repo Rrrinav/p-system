@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "./particle.hpp"
+
 #include "../raylib/include/raymath.h"
 
 class Particle_system
@@ -10,10 +11,12 @@ class Particle_system
     std::vector<Particle> particles;
     Vector2 gravity{0.0f, 900.0f};
     float dt = 1.0f / 60.0f;
+    int substeps = 8;
 
 public:
     int boundary_radius{250};
     Vector2 boundary_center{};
+
     Particle_system() = default;
     Particle_system(Particle_system const &other) = default;
     Particle_system &operator=(Particle_system const &other) = default;
@@ -26,25 +29,13 @@ public:
 
     std::vector<Particle> const &get_particles() const;
 
+    void pull_particles(Vector2 position);
+
+    void push_particles(Vector2 position);
+
 private:
     void apply_gravity();
-    void apply_boundary()
-    {
-        for (auto & particle : particles)
-        {
-            Vector2 radius = Vector2Subtract(boundary_center, particle.position);
-            float sq_dis = radius.x * radius.x + radius.y * radius.y;
-
-            if (sq_dis > ((boundary_radius * boundary_radius) - particle.radius))
-            {
-                Vector2 rn = (Vector2Normalize(radius));
-                Vector2 tangent = 
-
-            }
-
-        }
-
-
-    }
-    void update_particles();
+    void apply_circular_boundary();
+    void update_particles(float dt);
+    void resolve_collisions();
 };

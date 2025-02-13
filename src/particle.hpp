@@ -55,6 +55,5 @@ struct Particle
 
     void add_velocity(const Vector2 &v, float dt);
 
-    Vector2 set_velocity() const;
-
+    Vector2 get_velocity() const;
 };

@@ -26,7 +26,7 @@ void Particle::add_velocity(const Vector2 &v, float dt)
     position_last = Vector2Subtract(position_last, Vector2Scale(v, dt));
 }
 
-Vector2 Particle::set_velocity() const
+Vector2 Particle::get_velocity() const
 {
     return Vector2Subtract(position, position_last);
 }
