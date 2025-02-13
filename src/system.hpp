@@ -4,8 +4,6 @@
 
 #include "./particle.hpp"
 
-#include "../raylib/include/raymath.h"
-
 class Particle_system
 {
     std::vector<Particle> particles;
@@ -23,7 +21,7 @@ public:
     Particle_system(Particle_system &&other) = default;
     Particle_system &operator=(Particle_system &&other) = default;
 
-    Particle& add_particle(const Particle &particle);
+    Particle* add_particle(const Particle &particle);
 
     void update();
 
@@ -32,6 +30,9 @@ public:
     void pull_particles(Vector2 position);
 
     void push_particles(Vector2 position);
+
+    Vector2 get_gravity() const {return gravity;}
+    void set_gravity(Vector2 new_gravity) {gravity = new_gravity;}
 
 private:
     void apply_gravity();

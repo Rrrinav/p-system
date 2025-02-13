@@ -4,9 +4,10 @@
 #include "../raylib/include/raymath.h"
 
 
-Particle& Particle_system::add_particle(const Particle &particle)
+Particle* Particle_system::add_particle(const Particle &particle)
 {
-   return particles.emplace_back(particle);
+   particles.emplace_back(particle);
+   return &particles.back();
 }
 
 void Particle_system::apply_gravity()
