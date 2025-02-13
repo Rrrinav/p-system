@@ -37,7 +37,8 @@ private:
 
             if (sq_dis > ((boundary_radius * boundary_radius) - particle.radius))
             {
-                Vector2 tangent = Vector2Negate(Vector2Normalize(radius));
+                Vector2 rn = (Vector2Normalize(radius));
+                Vector2 tangent = 
 
             }
 
