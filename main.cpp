@@ -1,4 +1,5 @@
 #include <cmath>
+#include <string>
 
 #include "./raylib/include/raylib.h"
 #include "./src/particle.hpp"
@@ -11,22 +12,21 @@ int main()
     constexpr int S_WIDTH = 900;
     constexpr int S_HEIGHT = 900;
     constexpr int BOUNDARY_RADIUS = 400;
-    constexpr int MAX_PARTICLES = 500;
+    constexpr int MAX_PARTICLES = 2000;
 
     InitWindow(S_WIDTH, S_HEIGHT, "PP: Particles and particles");
-    SetTargetFPS(60);
-
     Particle_system system;
     system.boundary_center = {(float)S_WIDTH / 2, (float)S_HEIGHT / 2};
     system.boundary_radius = BOUNDARY_RADIUS;
     system.screen_width = S_WIDTH;
     system.screen_height = S_HEIGHT;
+    system.set_grid_size(30);
+    int particle_count = 0;
 
     while (!WindowShouldClose())
     {
         BeginDrawing();
         ClearBackground(CIRCLE_COLOR);
-        //DrawCircle(S_WIDTH / 2, S_HEIGHT / 2, BOUNDARY_RADIUS, CIRCLE_COLOR);
 
         const auto &particles = system.get_particles();
 
@@ -44,7 +44,7 @@ int main()
             system.set_gravity(gravity);
         }
 
-        if (particles.size() < MAX_PARTICLES && fmod(GetTime(), 0.08) < GetFrameTime())
+        if (particles.size() < MAX_PARTICLES && fmod(GetTime(), 0.01) < GetFrameTime())
         {
             Vector2 position = {float(S_WIDTH) / 2, float(S_HEIGHT) / 2 - 250};
             int r = GetRandomValue(8, 12);
@@ -55,12 +55,15 @@ int main()
             int hue = (int)(c_wave * 360);
             Particle *p = system.add_particle(Particle(position, {0, 0}, ColorFromHSV(hue, 0.8, 0.6), r));
 
-            float wave = M_PI * 0.5f + sin(GetTime() * 3.0f);
+            float wave = M_PI * 0.5f + sin(GetTime() );
             Vector2 direction = {float(cos(wave)), float(sin(wave))};
             p->set_velocity(direction, 1.0f);
+            particle_count++;
         }
-
         system.update();
+        std::string fps = std::to_string(GetFPS());
+        DrawText(fps.c_str(), 10, 10, 20, RED);
+        DrawText(std::to_string(particle_count).c_str(), 10, 30, 20, RED);
         EndDrawing();
     }
 
