@@ -2,7 +2,6 @@
 #include <string>
 
 #include "./raylib/include/raylib.h"
-#include "./src/particle.hpp"
 #include "./src/system.hpp"
 
 int main()
@@ -12,16 +11,20 @@ int main()
     constexpr int S_WIDTH = 900;
     constexpr int S_HEIGHT = 900;
     constexpr int BOUNDARY_RADIUS = 400;
-    constexpr int MAX_PARTICLES = 2000;
+    constexpr int MAX_PARTICLES = 5000;
 
     InitWindow(S_WIDTH, S_HEIGHT, "PP: Particles and particles");
+    //SetTargetFPS(60);
+    
     Particle_system system;
     system.boundary_center = {(float)S_WIDTH / 2, (float)S_HEIGHT / 2};
     system.boundary_radius = BOUNDARY_RADIUS;
     system.screen_width = S_WIDTH;
     system.screen_height = S_HEIGHT;
-    system.set_grid_size(30);
+    system.set_cell_size(10);
+    system.variable_radius = false;
     int particle_count = 0;
+    constexpr int r = 4;
 
     while (!WindowShouldClose())
     {
@@ -44,20 +47,18 @@ int main()
             system.set_gravity(gravity);
         }
 
-        if (particles.size() < MAX_PARTICLES && fmod(GetTime(), 0.01) < GetFrameTime())
+        if (particles.size() < MAX_PARTICLES && fmod(GetTime(), 0.005) < GetFrameTime())
         {
             Vector2 position = {float(S_WIDTH) / 2, float(S_HEIGHT) / 2 - 250};
-            int r = GetRandomValue(8, 12);
-            // Incremental color using HSV
+
+            // Color calculation remains the same
             float c_wave = sin(GetTime() * 0.2f);
             if (c_wave < 0) c_wave *= -1;
-
             int hue = (int)(c_wave * 360);
             Particle *p = system.add_particle(Particle(position, {0, 0}, ColorFromHSV(hue, 0.8, 0.6), r));
 
-            float wave = M_PI * 0.5f + sin(GetTime() );
-            Vector2 direction = {float(cos(wave)), float(sin(wave))};
-            p->set_velocity(direction, 1.0f);
+            float wave = M_PI/2 + sin(GetTime()) * M_PI/4; 
+            p->set_velocity({float(cos(wave)), float(sin(wave))}, 1.0f);
             particle_count++;
         }
         system.update();

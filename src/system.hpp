@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unordered_map>
 #include <vector>
 
 #include "./particle.hpp"
@@ -10,10 +9,11 @@ class Particle_system
     std::vector<Particle> particles;
     Vector2 gravity{0.0f, 900.0f};
     float dt = 1.0f / 60.0f;
-    int substeps = 8;
-    std::unordered_map<int, std::vector<int>> _grid; // {cell: particle indices}
+    int substeps = 10;
+    std::vector<std::vector<int>> _grid; // {cell: particle indices}
     int grid_width;
     int grid_height;
+    float inv_cell_size;
 
 public:
     enum class Bound_type {
@@ -25,6 +25,7 @@ public:
     Bound_type bound_type{Bound_type::SCREEN};
     Vector2 boundary_center{};
     int cell_size{25};
+    bool variable_radius{false};
 
     Particle_system() = default;
     Particle_system(Particle_system const &other) = default;
@@ -44,15 +45,15 @@ public:
 
     Vector2 get_gravity() const {return gravity;}
     void set_gravity(Vector2 new_gravity) {gravity = new_gravity;}
-    void set_grid_size(int x);
+    void set_cell_size(int x);
 
 private:
-    void apply_gravity();
-    void apply_circular_boundary();
-    void apply_bounds();
-    void update_particles(float dt);
-    void resolve_collisions();
-    int get_cell_index(Vector2 position) const;
-    std::vector<int> get_neighbour_cells(int cell_index) const;
-    void resolve_single_collision(Particle &particle_1, Particle &particle_2);
+    inline void apply_gravity();
+    inline void apply_circular_boundary();
+    inline void apply_bounds();
+    inline void update_particles(float dt);
+    inline void resolve_collisions();
+    inline int get_cell_index(Vector2 position) const;
+    inline void get_neighbour_cells(int cell_index, std::vector<int> &neighbours) const;
+    inline void resolve_single_collision(Particle &particle_1, Particle &particle_2);
 };
