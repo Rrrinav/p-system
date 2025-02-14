@@ -20,15 +20,41 @@ void Particle_system::update_particles(float dT)
     for (auto &particle : particles) particle.update(dT);
 }
 
-void Particle_system::update()
+void Particle_system::update(Bound_type bound_type)
 {
-    float sub_dt = dt / substeps;
-    for (int i{substeps};i; --i)
+    float sub_dt = dt / this->substeps;
+    switch (bound_type)
     {
-        apply_gravity();
-        resolve_collisions();
-        apply_circular_boundary();
-        update_particles(sub_dt);
+        case Bound_type::CIRCLE:
+        {
+            for (int i{this->substeps};i; --i)
+            {
+                apply_gravity();
+                resolve_collisions();
+                apply_circular_boundary();
+                update_particles(sub_dt);
+            }
+        } break;
+        case Bound_type::SCREEN:
+        {
+            for (int i{this->substeps};i; --i)
+            {
+                apply_gravity();
+                resolve_collisions();
+                apply_bounds();
+                update_particles(sub_dt);
+            }
+        } break;
+        default:
+        {
+            for (int i{this->substeps};i; --i)
+            {
+                apply_gravity();
+                resolve_collisions();
+                apply_bounds();
+                update_particles(sub_dt);
+            }
+        } break;
     }
 }
 
@@ -110,5 +136,68 @@ void Particle_system::resolve_collisions()
             }
         }
     }
+}
 
+
+//void Particle_system::apply_bounds() {
+//    for (auto &particle : this->particles) {
+//        // Out of bounds on left or right
+//        if (particle.position.x - particle.radius < 0 || 
+//            particle.position.x + particle.radius > screen_width) {
+//            particle.position.x = std::clamp(particle.position.x, 
+//                                           0.0f + particle.radius, 
+//                                           (float)screen_width - particle.radius);
+//            particle.set_velocity({-particle.get_velocity().x, particle.get_velocity().y}, 1);
+//        }
+//
+//        // Out of bounds on top or bottom
+//        if (particle.position.y - particle.radius < 0 || 
+//            particle.position.y + particle.radius > screen_height) {
+//            particle.position.y = std::clamp(particle.position.y, 
+//                                           0.0f + particle.radius, 
+//                                           (float)screen_height - particle.radius);
+//            particle.set_velocity({particle.get_velocity().x, -particle.get_velocity().y}, 1);
+//        }
+//    }
+//}
+void Particle_system::apply_bounds() {
+
+    for (auto &particle : this->particles) {
+
+        const float right_bound = screen_width - particle.radius;
+        const float bottom_bound = screen_height - particle.radius;
+        const float left_bound = particle.radius;
+        const float top_bound = particle.radius;
+        Vector2 vel = particle.get_velocity();  // Get velocity once
+        bool changed = false;
+
+        // Check X bounds
+        if (particle.position.x < left_bound) {
+            particle.position.x = left_bound;
+            vel.x = -vel.x;
+            changed = true;
+        }
+        else if (particle.position.x > right_bound) {
+            particle.position.x = right_bound;
+            vel.x = -vel.x;
+            changed = true;
+        }
+
+        // Check Y bounds
+        if (particle.position.y < top_bound) {
+            particle.position.y = top_bound;
+            vel.y = -vel.y;
+            changed = true;
+        }
+        else if (particle.position.y > bottom_bound) {
+            particle.position.y = bottom_bound;
+            vel.y = -vel.y;
+            changed = true;
+        }
+
+        // Only call set_velocity if needed
+        if (changed) {
+            particle.set_velocity(vel, 1);
+        }
+    }
 }

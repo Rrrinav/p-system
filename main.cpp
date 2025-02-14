@@ -19,12 +19,14 @@ int main()
     Particle_system system;
     system.boundary_center = {(float)S_WIDTH / 2, (float)S_HEIGHT / 2};
     system.boundary_radius = BOUNDARY_RADIUS;
+    system.screen_width = S_WIDTH;
+    system.screen_height = S_HEIGHT;
 
     while (!WindowShouldClose())
     {
         BeginDrawing();
-        ClearBackground(CL_COLOR);
-        DrawCircle(S_WIDTH / 2, S_HEIGHT / 2, BOUNDARY_RADIUS, CIRCLE_COLOR);
+        ClearBackground(CIRCLE_COLOR);
+        //DrawCircle(S_WIDTH / 2, S_HEIGHT / 2, BOUNDARY_RADIUS, CIRCLE_COLOR);
 
         const auto &particles = system.get_particles();
 

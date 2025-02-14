@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <vector>
 
 #include "./particle.hpp"
@@ -12,7 +13,13 @@ class Particle_system
     int substeps = 8;
 
 public:
+    enum class Bound_type {
+        CIRCLE, SCREEN
+    };
+    int screen_width{};
+    int screen_height{};
     int boundary_radius{250};
+    Bound_type bound_type{Bound_type::SCREEN};
     Vector2 boundary_center{};
 
     Particle_system() = default;
@@ -23,7 +30,7 @@ public:
 
     Particle* add_particle(const Particle &particle);
 
-    void update();
+    void update(Bound_type bound_type = Bound_type::SCREEN);
 
     std::vector<Particle> const &get_particles() const;
 
@@ -37,6 +44,7 @@ public:
 private:
     void apply_gravity();
     void apply_circular_boundary();
+    void apply_bounds();
     void update_particles(float dt);
     void resolve_collisions();
 };
