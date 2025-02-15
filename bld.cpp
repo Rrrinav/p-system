@@ -4,7 +4,7 @@
 std::string TARGET = "main";
 std::string TARGET_FOLDER = "./build";
 
-void add_flags(bld::Command &cmd) { cmd.add_parts("-O2", "-Wall", "-Wextra", "-Wno-missing-field-initializers"); }
+void add_flags(bld::Command &cmd) { cmd.add_parts("-O3", "-Wall", "-Wextra", "-Wno-missing-field-initializers"); }
 
 void add_include_flags(bld::Command &cmd) { cmd.add_parts("-I./"); }
 

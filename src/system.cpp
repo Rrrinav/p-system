@@ -1,9 +1,9 @@
 #include "./system.hpp"
 
 #include <algorithm>
-#include <iostream>
 #include <thread>
 #include <vector>
+#include <omp.h>
 
 #include "../raylib/include/raymath.h"
 #include "./thread.hpp"
@@ -19,8 +19,8 @@ Particle *Particle_system::add_particle(const Particle &particle)
 
 void Particle_system::apply_gravity()
 {
-    for (auto &particle : particles)
-        particle.accelerate(gravity);
+    for (size_t i = 0; i < particles.size(); ++i)
+        particles[i].accelerate(gravity);
 }
 
 inline void Particle_system::update_particles(float dt)
@@ -143,7 +143,7 @@ void Particle_system::push_particles(Vector2 position)
 
 inline void Particle_system::resolve_collisions()
 {
-    int num_threads = 6;
+    int num_threads = std::thread::hardware_concurrency() - 1;
     int cols_per_thread = grid_width / num_threads;
     int extra_cols = grid_width % num_threads;  // Handle uneven division
 
