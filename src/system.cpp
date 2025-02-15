@@ -1,14 +1,20 @@
 #include "./system.hpp"
 
 #include <algorithm>
+#include <iostream>
+#include <thread>
 #include <vector>
 
 #include "../raylib/include/raymath.h"
+#include "./thread.hpp"
 
 Particle *Particle_system::add_particle(const Particle &particle)
 {
     particles.emplace_back(particle);
-    return &particles.back();
+    Particle *p = &particles.back();
+    int cell_id = get_cell_index(p->position);
+    p->cellID = cell_id;
+    return p;
 }
 
 void Particle_system::apply_gravity()
@@ -17,18 +23,19 @@ void Particle_system::apply_gravity()
         particle.accelerate(gravity);
 }
 
-void Particle_system::update_particles(float dt)
+inline void Particle_system::update_particles(float dt)
 {
     for (auto &cell : _grid)
-        cell.clear();  // Clear grid before updating
+        cell.clear();
 
     for (int i = 0; i < (int)particles.size(); ++i)
     {
-        particles[i].update(dt);  // Update particle position
+        particles[i].update(dt);
+        int new_cell_id = get_cell_index(particles[i].position);
+        particles[i].cellID = new_cell_id;
 
-        int cell_id = get_cell_index(particles[i].position);
-        if (cell_id >= 0 && cell_id < (int)_grid.size())
-            _grid[cell_id].emplace_back(i);  // Add particle index to correct grid cell
+        if (new_cell_id >= 0 && new_cell_id < (int)_grid.size())
+            _grid[new_cell_id].push_back(i);
     }
 }
 
@@ -134,73 +141,183 @@ void Particle_system::push_particles(Vector2 position)
     }
 }
 
-void Particle_system::resolve_collisions()
+inline void Particle_system::resolve_collisions()
 {
-    std::vector<int> cell_neighbours;
-    cell_neighbours.reserve(4);
+    int num_threads = 6;
+    int cols_per_thread = grid_width / num_threads;
+    int extra_cols = grid_width % num_threads;  // Handle uneven division
 
-    for (int cell_id = 0; cell_id < (int)_grid.size(); ++cell_id)
+    Multi_threader thread_pool(num_threads);
+
+    for (int pass = 0; pass < 2; ++pass)
     {
-        auto &cell = _grid[cell_id];
-        if (cell.empty())
-            continue;
-
-        get_neighbour_cells(cell_id, cell_neighbours);
-
-        for (size_t i = 0; i < cell.size(); ++i)
+        for (int t = 0; t < num_threads; ++t)
         {
-            Particle &p1 = particles[cell[i]];
-            for (size_t j = 0; j < cell.size(); ++j)
-            {
-                if (i == j)
-                    continue;
-                resolve_single_collision(p1, particles[cell[j]]);
-            }
+            // Compute thread's total column range
+            int full_start = t * cols_per_thread + std::min(t, extra_cols);
+            int full_end = full_start + cols_per_thread + (t < extra_cols ? 1 : 0);
 
-            for (int neighbour_id : cell_neighbours)
-            {
-                if (neighbour_id < 0 || neighbour_id >= (int)_grid.size())
-                    continue;
-                auto &neighbour = _grid[neighbour_id];
-                for (int p2_idx : neighbour)
-                    resolve_single_collision(p1, particles[p2_idx]);
-            }
+            // Ensure non-empty range
+            if (full_start >= grid_width)
+                continue;
+
+            // Split range for each pass
+            int mid = (full_start + full_end) / 2;
+            int start_col = (pass == 0) ? full_start : mid;
+            int end_col = (pass == 0) ? mid : full_end;
+
+            thread_pool.add_task(
+                [this, start_col, end_col]()
+                {
+                    std::vector<int> cell_neighbours;
+                    cell_neighbours.reserve(4);
+
+                    for (int col = start_col; col < end_col; ++col)
+                    {
+                        for (int row = 0; row < grid_height; ++row)
+                        {
+                            int cell_id = col + row * grid_width;
+                            if (cell_id < 0 || cell_id >= (int)_grid.size())
+                                continue;
+
+                            auto &cell = _grid[cell_id];
+                            if (cell.empty())
+                                continue;
+
+                            get_neighbour_cells(cell_id, cell_neighbours);
+
+                            for (size_t i = 0; i < cell.size(); ++i)
+                            {
+                                Particle &p1 = particles[cell[i]];
+
+                                // Collisions within the same cell
+                                for (size_t j = i + 1; j < cell.size(); ++j)
+                                    resolve_single_collision(p1, particles[cell[j]]);
+
+                                // Collisions with neighboring cells
+                                for (int neighbour_id : cell_neighbours)
+                                {
+                                    if (neighbour_id < 0 || neighbour_id >= (int)_grid.size())
+                                        continue;
+                                    auto &neighbour = _grid[neighbour_id];
+                                    for (int index : neighbour)
+                                        resolve_single_collision(p1, particles[index]);
+                                }
+                            }
+                        }
+                    }
+                });
         }
+        thread_pool.wait();  // Ensure all threads complete before the next pass
     }
 }
 
 void Particle_system::apply_bounds()
 {
-    for (auto &particle : this->particles)
-    {
-        // Out of bounds on left or right
-        if (particle.position.x - particle.radius < 0 || particle.position.x + particle.radius > screen_width)
-        {
-            particle.position.x = std::clamp(particle.position.x, 0.0f + particle.radius, (float)screen_width - particle.radius);
-            particle.set_velocity({-particle.get_velocity().x, particle.get_velocity().y}, 1);
-        }
+    int threshold = 2;
 
-        // Out of bounds on top or bottom
-        if (particle.position.y - particle.radius < 0 || particle.position.y + particle.radius > screen_height)
+    // Top edge (also handles top-left corner)
+    auto top = [&]()
+    {
+        for (int x = 0; x < grid_width; x++)
         {
-            particle.position.y = std::clamp(particle.position.y, 0.0f + particle.radius, (float)screen_height - particle.radius);
-            particle.set_velocity({particle.get_velocity().x, -particle.get_velocity().y}, 1);
+            for (int y = 0; y < threshold; y++)
+            {
+                for (auto &particle : _grid[x + y * grid_width])
+                {
+                    Particle &p = particles[particle];
+                    if (p.position.y - p.radius < 0)
+                    {
+                        p.position.y = p.radius;
+                        p.set_velocity({p.get_velocity().x, -p.get_velocity().y}, 1);
+                    }
+                }
+            }
         }
-    }
+    };
+
+    // Bottom edge (also handles bottom-right corner)
+    auto bottom = [&]()
+    {
+        for (int x = 0; x < grid_width; x++)
+        {
+            for (int y = std::max(0, grid_height - threshold); y < grid_height; y++)
+            {
+                for (auto &particle : _grid[x + y * grid_width])
+                {
+                    Particle &p = particles[particle];
+                    if (p.position.y + p.radius > screen_height)
+                    {
+                        p.position.y = screen_height - p.radius;
+                        p.set_velocity({p.get_velocity().x, -p.get_velocity().y}, 1);
+                    }
+                }
+            }
+        }
+    };
+
+    // Left edge (also handles bottom-left corner)
+    auto left = [&]()
+    {
+        for (int y = 0; y < grid_height; y++)
+        {
+            for (int x = 0; x < threshold; x++)
+            {
+                for (auto &particle : _grid[x + y * grid_width])
+                {
+                    Particle &p = particles[particle];
+                    if (p.position.x - p.radius < 0)
+                    {
+                        p.position.x = p.radius;
+                        p.set_velocity({-p.get_velocity().x, p.get_velocity().y}, 1);
+                    }
+                }
+            }
+        }
+    };
+
+    // Right edge (also handles top-right corner)
+    auto right = [&]()
+    {
+        for (int y = 0; y < grid_height; y++)
+        {
+            for (int x = std::max(0, grid_width - threshold); x < grid_width; x++)
+            {
+                for (auto &particle : _grid[x + y * grid_width])
+                {
+                    Particle &p = particles[particle];
+                    if (p.position.x + p.radius > screen_width)
+                    {
+                        p.position.x = screen_width - p.radius;
+                        p.set_velocity({-p.get_velocity().x, p.get_velocity().y}, 1);
+                    }
+                }
+            }
+        }
+    };
+
+    // Spawn 4 threads for independent edge handling
+    std::thread t1(top);
+    std::thread t2(bottom);
+    std::thread t3(left);
+    std::thread t4(right);
+
+    t1.join();
+    t2.join();
+    t3.join();
+    t4.join();
 }
 
-int Particle_system::get_cell_index(Vector2 position) const
+inline int Particle_system::get_cell_index(Vector2 position) const
 {
     int x = (position.x * inv_cell_size);
     int y = (position.y * inv_cell_size);
-    x = std::clamp(x, 0, grid_width - 1);
-    y = std::clamp(y, 0, grid_height - 1);
     return x + y * grid_width;
 }
 
 constexpr int neighbor_offsets[][2] = {{1, 0}, {1, 1}, {0, 1}, {-1, 1}};
 
-void Particle_system::get_neighbour_cells(int cell_index, std::vector<int> &neighbours) const
+inline void Particle_system::get_neighbour_cells(int cell_index, std::vector<int> &neighbours) const
 {
     neighbours.clear();
     int x = cell_index % grid_width;
@@ -216,7 +333,7 @@ void Particle_system::get_neighbour_cells(int cell_index, std::vector<int> &neig
     }
 }
 
-void Particle_system::resolve_single_collision(Particle &p1, Particle &p2)
+inline void Particle_system::resolve_single_collision(Particle &p1, Particle &p2)
 {
     Vector2 direction = Vector2Subtract(p1.position, p2.position);
     float distance = Vector2Length(direction);

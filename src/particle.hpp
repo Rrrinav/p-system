@@ -9,6 +9,7 @@ struct Particle
     Vector2 acceleration;
     Color color;
     float radius{10};
+    int cellID{-1};
 
     Particle() = default;
     Particle(Vector2 position, Vector2 acceleration, Color color, float radius)
