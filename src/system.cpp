@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <thread>
 #include <vector>
-#include <omp.h>
 
 #include "../raylib/include/raymath.h"
 #include "./thread.hpp"
@@ -19,8 +18,26 @@ Particle *Particle_system::add_particle(const Particle &particle)
 
 void Particle_system::apply_gravity()
 {
-    for (size_t i = 0; i < particles.size(); ++i)
-        particles[i].accelerate(gravity);
+    int num_threads = std::thread::hardware_concurrency() - 1;
+    if (num_threads <= 1) {
+        for (Particle &p : particles) p.accelerate(gravity);
+        return;
+    }
+
+    std::vector<std::thread> threads(num_threads);
+    size_t chunk_size = particles.size() / num_threads;
+
+    for (int t = 0; t < num_threads; ++t) {
+        size_t start = t * chunk_size;
+        size_t end = (t == num_threads - 1) ? particles.size() : start + chunk_size;
+
+        threads[t] = std::thread([this, start, end]() {
+            for (size_t i = start; i < end; ++i)
+                particles[i].accelerate(gravity);
+        });
+    }
+
+    for (auto &th : threads) th.join();
 }
 
 inline void Particle_system::update_particles(float dt)
@@ -57,7 +74,7 @@ void Particle_system::update(Bound_type bound_type)
     float sub_dt = dt / this->substeps;
     switch (bound_type)
     {
-        case Bound_type::CIRCLE:
+        [[unlikely]] case Bound_type::CIRCLE:
         {
             for (int i{this->substeps}; i; --i)
             {
@@ -68,7 +85,7 @@ void Particle_system::update(Bound_type bound_type)
             }
         }
         break;
-        case Bound_type::SCREEN:
+        [[likely]] case Bound_type::SCREEN:
         {
             for (int i{this->substeps}; i; --i)
             {
@@ -79,7 +96,7 @@ void Particle_system::update(Bound_type bound_type)
             }
         }
         break;
-        default:
+        [[likely]] default:
         {
             for (int i{this->substeps}; i; --i)
             {

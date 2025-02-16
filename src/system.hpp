@@ -8,7 +8,7 @@ class Particle_system
 {
     std::vector<Particle> particles;
     Vector2 gravity{0.0f, 900.0f};
-    float dt = 1.0f / 70.0f;
+    float dt = 1.0f / 60.0f;
     int substeps = 8;
     std::vector<std::vector<int>> _grid;
     int grid_width;
