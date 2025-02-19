@@ -22,10 +22,10 @@ Texture2D GenerateCircleTexture(int radius, Color color = WHITE)
 int main()
 {
     Color CIRCLE_COLOR = Color{20, 20, 20, 255};
-    constexpr int S_WIDTH  = 1200;
+    constexpr int S_WIDTH  = 1000;
     constexpr int S_HEIGHT = 900;
     constexpr int BOUNDARY_RADIUS = 400;
-    constexpr int MAX_PARTICLES = 30000;
+    constexpr int MAX_PARTICLES = 35000;
     constexpr int TEXTURE_SIZE = 32;  // Size of the particle texture
     static int frame_count = 0;
 
@@ -39,7 +39,7 @@ int main()
     system.boundary_radius = BOUNDARY_RADIUS;
     system.screen_width = S_WIDTH;
     system.screen_height = S_HEIGHT;
-    system.set_cell_size(10);
+    system.set_cell_size(9);
     system.variable_radius = false;
     int particle_count = 0;
     constexpr int r = 3;
@@ -70,7 +70,6 @@ int main()
             system.push_particles(GetMousePosition());
         if (particle_count < MAX_PARTICLES && (frame_count & 1) == 0)
         {
-            // Color calculation remains the same
             int hue = (int)(frame_count % 360);
             system.add_particle(Particle(4 * r, 60, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
             system.add_particle(Particle(4 * r, 120, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));

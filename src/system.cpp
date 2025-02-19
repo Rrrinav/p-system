@@ -20,26 +20,6 @@ void Particle_system::apply_gravity()
 {
     for (Particle &p : particles)
         p.accelerate(gravity);
-    //int num_threads = std::thread::hardware_concurrency() - 1;
-    //if (num_threads <= 1) {
-    //    for (Particle &p : particles) p.accelerate(gravity);
-    //    return;
-    //}
-    //
-    //std::vector<std::thread> threads(num_threads);
-    //size_t chunk_size = particles.size() / num_threads;
-    //
-    //for (int t = 0; t < num_threads; ++t) {
-    //    size_t start = t * chunk_size;
-    //    size_t end = (t == num_threads - 1) ? particles.size() : start + chunk_size;
-    //
-    //    threads[t] = std::thread([this, start, end]() {
-    //        for (size_t i = start; i < end; ++i)
-    //            particles[i].accelerate(gravity);
-    //    });
-    //}
-    //
-    //for (auto &th : threads) th.join();
 }
 
 inline void Particle_system::update_particles(float dt)
@@ -83,8 +63,7 @@ void Particle_system::update(Bound_type bound_type)
                 resolve_collisions();
                 apply_circular_boundary();
             }
-        }
-        break;
+        } break;
         [[likely]] case Bound_type::SCREEN:
         {
             for (int i{this->substeps}; i; --i)
@@ -94,19 +73,17 @@ void Particle_system::update(Bound_type bound_type)
                 resolve_collisions();
                 apply_bounds();
             }
-        }
-        break;
+        } break;
         [[likely]] default:
         {
             for (int i{this->substeps}; i; --i)
             {
                 apply_gravity();
                 update_particles(sub_dt);
-                resolve_collisions();
                 apply_bounds();
+                resolve_collisions();
             }
-        }
-        break;
+        } break;
     }
 }
 
@@ -211,11 +188,9 @@ inline void Particle_system::resolve_collisions()
                                 // Collisions with neighboring cells
                                 for (int neighbour_id : cell_neighbours)
                                 {
-                                    if (neighbour_id < 0 || neighbour_id >= (int)_grid.size())
-                                        continue;
+                                    if (neighbour_id < 0 || neighbour_id >= (int)_grid.size()) continue;
                                     auto &neighbour = _grid[neighbour_id];
-                                    for (int index : neighbour)
-                                        resolve_single_collision(p1, particles[index]);
+                                    for (int index : neighbour) resolve_single_collision(p1, particles[index]);
                                 }
                             }
                         }
