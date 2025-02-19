@@ -18,26 +18,28 @@ Particle *Particle_system::add_particle(const Particle &particle)
 
 void Particle_system::apply_gravity()
 {
-    int num_threads = std::thread::hardware_concurrency() - 1;
-    if (num_threads <= 1) {
-        for (Particle &p : particles) p.accelerate(gravity);
-        return;
-    }
-
-    std::vector<std::thread> threads(num_threads);
-    size_t chunk_size = particles.size() / num_threads;
-
-    for (int t = 0; t < num_threads; ++t) {
-        size_t start = t * chunk_size;
-        size_t end = (t == num_threads - 1) ? particles.size() : start + chunk_size;
-
-        threads[t] = std::thread([this, start, end]() {
-            for (size_t i = start; i < end; ++i)
-                particles[i].accelerate(gravity);
-        });
-    }
-
-    for (auto &th : threads) th.join();
+    for (Particle &p : particles)
+        p.accelerate(gravity);
+    //int num_threads = std::thread::hardware_concurrency() - 1;
+    //if (num_threads <= 1) {
+    //    for (Particle &p : particles) p.accelerate(gravity);
+    //    return;
+    //}
+    //
+    //std::vector<std::thread> threads(num_threads);
+    //size_t chunk_size = particles.size() / num_threads;
+    //
+    //for (int t = 0; t < num_threads; ++t) {
+    //    size_t start = t * chunk_size;
+    //    size_t end = (t == num_threads - 1) ? particles.size() : start + chunk_size;
+    //
+    //    threads[t] = std::thread([this, start, end]() {
+    //        for (size_t i = start; i < end; ++i)
+    //            particles[i].accelerate(gravity);
+    //    });
+    //}
+    //
+    //for (auto &th : threads) th.join();
 }
 
 inline void Particle_system::update_particles(float dt)
@@ -49,8 +51,6 @@ inline void Particle_system::update_particles(float dt)
     {
         particles[i].update(dt);
         int new_cell_id = get_cell_index(particles[i].position);
-        particles[i].cellID = new_cell_id;
-
         if (new_cell_id >= 0 && new_cell_id < (int)_grid.size())
             _grid[new_cell_id].push_back(i);
     }
@@ -101,9 +101,9 @@ void Particle_system::update(Bound_type bound_type)
             for (int i{this->substeps}; i; --i)
             {
                 apply_gravity();
+                update_particles(sub_dt);
                 resolve_collisions();
                 apply_bounds();
-                update_particles(sub_dt);
             }
         }
         break;
@@ -160,7 +160,7 @@ void Particle_system::push_particles(Vector2 position)
 
 inline void Particle_system::resolve_collisions()
 {
-    int num_threads = std::thread::hardware_concurrency() - 1;
+    int num_threads = std::thread::hardware_concurrency();
     int cols_per_thread = grid_width / num_threads;
     int extra_cols = grid_width % num_threads;  // Handle uneven division
 
@@ -194,12 +194,9 @@ inline void Particle_system::resolve_collisions()
                         for (int row = 0; row < grid_height; ++row)
                         {
                             int cell_id = col + row * grid_width;
-                            if (cell_id < 0 || cell_id >= (int)_grid.size())
-                                continue;
+                            if (cell_id < 0 || cell_id >= (int)_grid.size()) continue;
 
                             auto &cell = _grid[cell_id];
-                            if (cell.empty())
-                                continue;
 
                             get_neighbour_cells(cell_id, cell_neighbours);
 
@@ -231,6 +228,23 @@ inline void Particle_system::resolve_collisions()
 
 void Particle_system::apply_bounds()
 {
+
+    for (auto & particle : this->particles)
+    {
+        if (particle.position.x - particle.radius < 0 || particle.position.x + particle.radius > screen_width)
+        {
+            particle.position.x = std::clamp(particle.position.x, particle.radius, screen_width - particle.radius);
+            particle.set_velocity({-particle.get_velocity().x, particle.get_velocity().y}, 1);
+        }
+
+        if (particle.position.y - particle.radius < 0 || particle.position.y + particle.radius > screen_height)
+        {
+            particle.position.y = std::clamp(particle.position.y, particle.radius, screen_height - particle.radius);
+            particle.set_velocity({particle.get_velocity().x, -particle.get_velocity().y}, 1);
+        }
+    }
+    return;
+
     int threshold = 2;
 
     // Top edge (also handles top-left corner)

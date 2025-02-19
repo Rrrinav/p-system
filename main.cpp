@@ -1,4 +1,3 @@
-#include <cmath>
 #include <string>
 
 #include "./raylib/include/raylib.h"
@@ -6,12 +5,12 @@
 #include "./src/system.hpp"
 
 // Generate a circle texture
-Texture2D GenerateCircleTexture(int radius, Color color)
+Texture2D GenerateCircleTexture(int radius, Color color = WHITE)
 {
     Image img = GenImageColor(radius * 2, radius * 2, BLANK);
 
     // Draw a white circle on transparent background
-    ImageDrawCircle(&img, radius, radius, radius, WHITE);
+    ImageDrawCircle(&img, radius, radius, radius, color);
 
     // Generate texture from image
     Texture2D texture = LoadTextureFromImage(img);
@@ -22,13 +21,13 @@ Texture2D GenerateCircleTexture(int radius, Color color)
 
 int main()
 {
-    Color CL_COLOR = Color{120, 120, 120, 255};
     Color CIRCLE_COLOR = Color{20, 20, 20, 255};
     constexpr int S_WIDTH  = 1200;
     constexpr int S_HEIGHT = 900;
     constexpr int BOUNDARY_RADIUS = 400;
     constexpr int MAX_PARTICLES = 30000;
     constexpr int TEXTURE_SIZE = 32;  // Size of the particle texture
+    static int frame_count = 0;
 
     InitWindow(S_WIDTH, S_HEIGHT, "PP: Particles and particles");
 
@@ -44,6 +43,7 @@ int main()
     system.variable_radius = false;
     int particle_count = 0;
     constexpr int r = 3;
+    system.reserve(MAX_PARTICLES);
 
     while (!WindowShouldClose())
     {
@@ -68,19 +68,19 @@ int main()
             system.pull_particles(GetMousePosition());
         if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON))
             system.push_particles(GetMousePosition());
-        if (particles.size() < MAX_PARTICLES && fmod(GetTime(), 0.005) < GetFrameTime())
+        if (particle_count < MAX_PARTICLES && (frame_count & 1) == 0)
         {
             // Color calculation remains the same
-            float c_wave = sin(GetTime() * 0.2f);
-            if (c_wave < 0)
-                c_wave *= -1;
-            int hue = (int)(c_wave * 360);
-            Particle *p1 = system.add_particle(Particle(4 * r, 60, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
-            Particle *p2 = system.add_particle(Particle(4 * r, 120, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
-            Particle *p3 = system.add_particle(Particle(4 * r, 180, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
-            float wave = M_PI / 2 + sin(GetTime()) * M_PI / 4;
-            particle_count += 3;
+            int hue = (int)(frame_count % 360);
+            system.add_particle(Particle(4 * r, 60, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
+            system.add_particle(Particle(4 * r, 120, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
+            system.add_particle(Particle(4 * r, 180, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
+            system.add_particle(Particle(4 * r, 240, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
+            system.add_particle(Particle(4 * r, 300, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
+            system.add_particle(Particle(4 * r, 360, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
+            particle_count += 6;
         }
+        frame_count++;
 
         system.update();
 

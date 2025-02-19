@@ -38,6 +38,7 @@ public:
     void update(Bound_type bound_type = Bound_type::SCREEN);
 
     std::vector<Particle> const &get_particles() const;
+    void reserve(int n) { this->particles.reserve(n); }
 
     void pull_particles(Vector2 position);
 
