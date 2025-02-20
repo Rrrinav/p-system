@@ -1,8 +1,23 @@
+#include <sys/types.h>
+#include <cstdlib>
+#include <fstream>
 #include <string>
-
+#include <iostream>
+#include <array>
+#include <sstream>
 #include "./raylib/include/raylib.h"
 #include "./raylib/include/rlgl.h"
 #include "./src/system.hpp"
+
+#include <cstdlib>
+
+#define ASSERT(condition, message) \
+    do { \
+        if (!(condition)) { \
+            std::cerr << __FILE__ << ":" <<  __LINE__ << ": error" << "Assertion failed: " << (message) << " in "  << std::endl; \
+            std::exit(EXIT_FAILURE); \
+        } \
+    } while (false)
 
 // Generate a circle texture
 Texture2D GenerateCircleTexture(int radius, Color color = WHITE)
@@ -19,13 +34,26 @@ Texture2D GenerateCircleTexture(int radius, Color color = WHITE)
     return texture;
 }
 
+std::array<std::string, 3> split(const std::string &s, char delim)
+{
+    std::array<std::string, 3> tokens;
+    std::stringstream ss(s);
+    std::string item;
+    int i = 0;
+    while (std::getline(ss, item, delim))
+    {
+        tokens[i++] = item;
+    }
+    return tokens;
+}
+
 int main()
 {
     Color CIRCLE_COLOR = Color{20, 20, 20, 255};
     constexpr int S_WIDTH  = 1000;
     constexpr int S_HEIGHT = 900;
     constexpr int BOUNDARY_RADIUS = 400;
-    constexpr int MAX_PARTICLES = 35000;
+    constexpr int MAX_PARTICLES = 32000;
     constexpr int TEXTURE_SIZE = 32;  // Size of the particle texture
     static int frame_count = 0;
 
@@ -44,6 +72,27 @@ int main()
     int particle_count = 0;
     constexpr int r = 3;
     system.reserve(MAX_PARTICLES);
+    std::vector<Color> colors;
+
+    std::ifstream file("./pp_color.txt");
+
+    for (std::string line; std::getline(file, line);)
+    {
+        u_char r, g, b;
+        auto tokens = split(line, ' ');
+        ASSERT(tokens.size() == 3, "Color has to have 3 values");
+        for (int i = 0; i < 3; i++)
+        {
+            if (i == 0)
+                r = std::stoi(tokens[i]);
+            if (i == 1)
+                g = std::stoi(tokens[i]);
+            if (i == 2)
+                b = std::stoi(tokens[i]);
+        }
+        colors.push_back(Color{r, g, b, 255});
+    }
+
 
     while (!WindowShouldClose())
     {
@@ -68,16 +117,21 @@ int main()
             system.pull_particles(GetMousePosition());
         if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON))
             system.push_particles(GetMousePosition());
+
         if (particle_count < MAX_PARTICLES && (frame_count & 1) == 0)
         {
-            int hue = (int)(frame_count % 360);
-            system.add_particle(Particle(4 * r, 60, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
-            system.add_particle(Particle(4 * r, 120, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
-            system.add_particle(Particle(4 * r, 180, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
-            system.add_particle(Particle(4 * r, 240, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
-            system.add_particle(Particle(4 * r, 300, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
-            system.add_particle(Particle(4 * r, 360, 500000, 0, ColorFromHSV(hue, 0.8, 0.6), r));
-            particle_count += 6;
+            Color color = colors[particle_count++];
+            system.add_particle(Particle(4 * r, 60, 500000, 0,  color, r));
+            color = colors[particle_count++];
+            system.add_particle(Particle(4 * r, 120, 500000, 0, color, r));
+            color = colors[particle_count++];
+            system.add_particle(Particle(4 * r, 180, 500000, 0, color, r));
+            color = colors[particle_count++];
+            system.add_particle(Particle(4 * r, 240, 500000, 0, color, r));
+            color = colors[particle_count++];
+            system.add_particle(Particle(4 * r, 300, 500000, 0, color, r));
+            color = colors[particle_count++];
+            system.add_particle(Particle(4 * r, 360, 500000, 0, color, r));
         }
         frame_count++;
 
@@ -95,4 +149,3 @@ int main()
     CloseWindow();
     return 0;
 }
-
