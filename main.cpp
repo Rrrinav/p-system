@@ -56,6 +56,7 @@ int main()
   static int frame_count = 0;
 
   InitWindow(S_WIDTH, S_HEIGHT, "PP: Particles and particles");
+  SetTargetFPS(60);
 
   // Generate white circle texture
   Texture2D circleTexture = GenerateCircleTexture(TEXTURE_SIZE / 2, WHITE);
@@ -68,9 +69,16 @@ int main()
   system.set_cell_size(9);
   system.variable_radius = false;
   int particle_count = 0;
-  constexpr int r = 3;
+  constexpr int r = 6;
   system.reserve(MAX_PARTICLES);
   std::vector<Color> colors;
+  //std::vector<int> chain1 = system.create_particle_chain({100, 100}, {300, 200}, 10, 8.0f, RED);
+  //
+  //std::vector<int> chain2 = system.create_particle_chain({400, 100}, {600, 200}, 15, 6.0f, BLUE);
+
+  // 2. Bridge chain (fixed at both ends)
+  std::vector<int> bridgeChain = system.create_particle_chain({400, 200}, {700, 200}, 16, 6.0f, BLUE);
+  system.fix_chain_both_ends(bridgeChain, true);  // Fix both ends
 
   std::ifstream file("./pp_color.txt");
 
@@ -110,20 +118,21 @@ int main()
     if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) system.pull_particles(GetMousePosition());
     if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) system.push_particles(GetMousePosition());
 
-    if (particle_count < MAX_PARTICLES && (frame_count & 1) == 0)
+    if (particle_count < MAX_PARTICLES && (frame_count & 2) == 0)
     {
       Color color = colors[particle_count++];
-      system.add_particle(Particle(4 * r, 60, 500000, 0, color, r));
-      color = colors[particle_count++];
-      system.add_particle(Particle(4 * r, 120, 500000, 0, color, r));
-      color = colors[particle_count++];
-      system.add_particle(Particle(4 * r, 180, 500000, 0, color, r));
-      color = colors[particle_count++];
-      system.add_particle(Particle(4 * r, 240, 500000, 0, color, r));
-      color = colors[particle_count++];
-      system.add_particle(Particle(4 * r, 300, 500000, 0, color, r));
-      color = colors[particle_count++];
-      system.add_particle(Particle(4 * r, 360, 500000, 0, color, r));
+      system.add_particle(Particle((float)S_WIDTH / 2, 100, 0, 100, color, r));
+      //system.add_particle(Particle(4 * r, 60, 500000, 0, color, r));
+      //color = colors[particle_count++];
+      //system.add_particle(Particle(4 * r, 120, 500000, 0, color, r));
+      //color = colors[particle_count++];
+      //system.add_particle(Particle(4 * r, 180, 500000, 0, color, r));
+      //color = colors[particle_count++];
+      //system.add_particle(Particle(4 * r, 240, 500000, 0, color, r));
+      //color = colors[particle_count++];
+      //system.add_particle(Particle(4 * r, 300, 500000, 0, color, r));
+      //color = colors[particle_count++];
+      //system.add_particle(Particle(4 * r, 360, 500000, 0, color, r));
     }
     frame_count++;
 

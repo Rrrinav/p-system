@@ -4,6 +4,13 @@
 
 void Particle::update(float dt)
 {
+  if (this->fixed_position)
+  {
+    position_last = f_pos;
+    acceleration = {}; // Reset acceleration
+    return;
+  }
+
   Vector2 displacement = Vector2Subtract(position, position_last);  // Get velocity approximation
   Vector2 new_position = Vector2Add(Vector2Add(position, displacement), Vector2Scale(acceleration, (dt * dt)));
 

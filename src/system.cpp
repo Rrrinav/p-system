@@ -18,7 +18,10 @@ Particle *Particle_system::add_particle(const Particle &particle)
 
 void Particle_system::apply_gravity()
 {
-  for (Particle &p : particles) p.accelerate(gravity);
+  for (Particle &p : particles)
+  {
+    if (!p.fixed_position) p.accelerate(gravity);
+  }
 }
 
 inline void Particle_system::update_particles(float dt)
@@ -68,6 +71,7 @@ void Particle_system::update(Bound_type bound_type)
       {
         apply_gravity();
         update_particles(sub_dt);
+        update_links(2);
         resolve_collisions();
         apply_bounds();
       }
@@ -79,6 +83,7 @@ void Particle_system::update(Bound_type bound_type)
       {
         apply_gravity();
         update_particles(sub_dt);
+        update_links(2);
         apply_bounds();
         resolve_collisions();
       }
@@ -346,6 +351,17 @@ inline void Particle_system::resolve_single_collision(Particle &p1, Particle &p2
     Vector2 normal = Vector2Normalize(direction);
     float overlap = 0.5f * (min_distance - distance);
 
+    if (p1.fixed_position && p2.fixed_position) return;
+    if (p1.fixed_position)
+    {
+      p2.position = Vector2Add(p2.position, Vector2Scale(normal, overlap));
+      return;
+    }
+    if (p2.fixed_position)
+    {
+      p1.position = Vector2Subtract(p1.position, Vector2Scale(normal, overlap));
+      return;
+    }
     p1.position = Vector2Add(p1.position, Vector2Scale(normal, overlap * 0.5));
     p2.position = Vector2Subtract(p2.position, Vector2Scale(normal, overlap * 0.5));
   }

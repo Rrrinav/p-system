@@ -5,11 +5,14 @@
 struct Particle
 {
   Vector2 position;
+  Vector2 f_pos;
   Vector2 position_last;
   Vector2 acceleration;
-  Color color;
-  float radius{10};
-  int cellID{-1};
+  Color   color;
+  float   radius{10};
+  int     cellID{-1};
+  bool    fixed_position{false};
+  bool    fixed_velocity{false};
 
   Particle() = default;
   Particle(Vector2 position, Vector2 acceleration, Color color, float radius)
@@ -62,6 +65,9 @@ struct Particle
   void set_velocity(const Vector2 &v, float dt);
 
   void add_velocity(const Vector2 &v, float dt);
+
+  void set_fixed_position(bool fix) { this->fixed_position = fix; }
+  void set_fixed_velocity(bool fix) { this->fixed_velocity = fix; }
 
   Vector2 get_velocity() const;
 };
