@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <vector>
 
 #include "./particle.hpp"
@@ -26,6 +27,8 @@ public:
   int add_link(int particleA, int particleB, float stiffness = 0.8f)
   {
     float distance = Vector2Distance(particles[particleA].position, particles[particleB].position);
+    float max_rad = particles[particleA].radius > particles[particleB].radius ? particles[particleA].radius : particles[particleB].radius;
+    distance = std::clamp(distance, 0.0001f, 2 * max_rad + 2);  // Prevent division by zero
     links.emplace_back(particleA, particleB, distance, stiffness);
     return links.size() - 1;  // Return index of the new link
   }
@@ -61,10 +64,27 @@ public:
         // Calculate correction
         float difference = (currentDistance - link.rest_length) / currentDistance;
         Vector2 correction = Vector2Scale(direction, difference * 0.5f * link.stiffness);
-
-        // Apply correction to both particles
-        p1.position = Vector2Add(p1.position, correction);
-        p2.position = Vector2Subtract(p2.position, correction);
+        if (p1.fixed_position && p2.fixed_position)
+        {
+          // Both fixed_position - no movement
+          continue;
+        }
+        else if (p1.fixed_position)
+        {
+          // Only p1 is fixed_position - p2 takes all correction
+          p2.position = Vector2Subtract(p2.position, Vector2Scale(correction, 2.0f));
+        }
+        else if (p2.fixed_position)
+        {
+          // Only p2 is fixed_position - p1 takes all correction
+          p1.position = Vector2Add(p1.position, Vector2Scale(correction, 2.0f));
+        }
+        else
+        {
+          // Neither is fixed - split the correction
+          p1.position = Vector2Add(p1.position, correction);
+          p2.position = Vector2Subtract(p2.position, correction);
+        }
       }
     }
   }

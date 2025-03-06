@@ -9,7 +9,7 @@ class Particle_system
 {
   Vector2 gravity{0.0f, 400.0f};
   float dt = 1.0f / 60.0f;
-  int substeps = 8;
+  int substeps = 10;
   int grid_width = 0;
   int grid_height = 0;
   float inv_cell_size = 0.0f;
@@ -52,7 +52,7 @@ public:
   void set_gravity(Vector2 new_gravity) { gravity = new_gravity; }
   void set_cell_size(int x);
 
-  std::vector<int> create_particle_chain(Vector2 start, Vector2 end, int count, float radius, Color color)
+  std::vector<int> create_particle_chain(Vector2 start, Vector2 end, int count, float radius, Color color, float stiffness = 0.8f)
   {
     std::vector<int> indices;
     indices.reserve(count);
@@ -69,7 +69,7 @@ public:
     }
 
     // Create links between the particles
-    links.create_chain(indices);
+    links.create_chain(indices, stiffness);
 
     return indices;
   }
